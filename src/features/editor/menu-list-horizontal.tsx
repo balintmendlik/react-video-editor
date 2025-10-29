@@ -24,34 +24,14 @@ interface MenuItemData {
 // Menu items configuration
 const menuItems: MenuItemData[] = [
   {
-    id: "texts",
-    label: "Text",
-    icon: Icons.type
-  },
-  {
-    id: "videos",
-    label: "Video",
-    icon: Icons.video
+    id: "uploads",
+    label: "Uploads",
+    icon: Icons.upload
   },
   {
     id: "captions",
     label: "Captions",
     icon: Icons.captions
-  },
-  {
-    id: "images",
-    label: "Images",
-    icon: Icons.image
-  },
-  {
-    id: "audios",
-    label: "Audio",
-    icon: Icons.audio
-  },
-  {
-    id: "transitions",
-    label: "Transitions",
-    icon: Icons.transition
   }
 ];
 

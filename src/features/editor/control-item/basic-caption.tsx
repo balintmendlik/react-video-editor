@@ -1,4 +1,5 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 import useDataState from "../store/use-data-state";
 import { loadFonts } from "../utils/fonts";
 import { dispatch } from "@designcombo/events";
@@ -96,6 +97,7 @@ const BasicCaption = ({
     default: DEFAULT_FONT,
     name: "Regular"
   });
+  const [applyToAll, setApplyToAll] = useState<boolean>(true);
   const { compactFonts, fonts } = useDataState();
 
   useEffect(() => {
@@ -400,6 +402,24 @@ const BasicCaption = ({
   );
 
   const components = [
+    {
+      key: "applyToAll",
+      component: (
+        <div className="flex items-center space-x-2 p-3 border rounded-lg bg-background">
+          <Checkbox
+            id="apply-to-all"
+            checked={applyToAll}
+            onCheckedChange={(checked) => setApplyToAll(checked as boolean)}
+          />
+          <label
+            htmlFor="apply-to-all"
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            Apply to All
+          </label>
+        </div>
+      )
+    },
     {
       key: "captionPreset",
       component: <PresetCaption trackItem={trackItem} properties={properties} />

@@ -21,46 +21,10 @@ const MENU_ITEMS = [
     ariaLabel: "Add and manage uploads"
   },
   {
-    id: "texts",
-    icon: Icons.type,
-    label: "Texts",
-    ariaLabel: "Add and edit text elements"
-  },
-  {
-    id: "videos",
-    icon: Icons.video,
-    label: "Videos",
-    ariaLabel: "Add and manage video content"
-  },
-  {
     id: "captions",
     icon: Icons.captions,
     label: "Captions",
     ariaLabel: "Add and edit captions"
-  },
-  {
-    id: "images",
-    icon: Icons.image,
-    label: "Images",
-    ariaLabel: "Add and manage images"
-  },
-  {
-    id: "audios",
-    icon: Icons.audio,
-    label: "Audio",
-    ariaLabel: "Add and manage audio content"
-  },
-  {
-    id: "transitions",
-    icon: Icons.transition, // Custom SVG for transitions
-    label: "Transitions",
-    ariaLabel: "Add transition effects"
-  },
-  {
-    id: "ai-voice",
-    icon: Icons.volume,
-    label: "AI Voice",
-    ariaLabel: "Generate AI voice from text"
   }
 ] as const;
 
