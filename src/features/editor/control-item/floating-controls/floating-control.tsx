@@ -1,5 +1,4 @@
 import useLayoutStore from "../../store/use-layout-store";
-import AnimationCaption from "./animation-caption";
 import AnimationPicker from "./animation-picker";
 import CaptionPresetPicker from "./caption-preset-picker";
 import FontFamilyPicker from "./font-family-picker";
@@ -22,9 +21,6 @@ export default function FloatingControl() {
         animationType={trackItem.type === "text" ? "text" : undefined}
       />
     );
-  }
-  if (floatingControl === "animation-caption") {
-    return <AnimationCaption />;
   }
   if (floatingControl === "caption-preset-picker") {
     return <CaptionPresetPicker trackItem={trackItem} />;

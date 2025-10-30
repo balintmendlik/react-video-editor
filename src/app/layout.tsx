@@ -30,10 +30,10 @@ const outfit = Outfit({
 
 export const metadata = createMetadata({
   title: {
-    template: "%s | Combo",
-    default: "Combo"
+    template: "%s | Simple Caption Generator",
+    default: "Simple Caption Generator"
   },
-  description: "AI Video generator for the next gen web.",
+  description: "AI caption generator",
   metadataBase: baseUrl
 });
 

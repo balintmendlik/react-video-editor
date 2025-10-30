@@ -8,12 +8,12 @@ export function createMetadata(override: Metadata): Metadata {
       description: override.description ?? undefined,
       url: "https://designcombo.dev",
       images: "/banner.png",
-      siteName: "Combo",
+      siteName: "Simple Caption Generator",
       ...override.openGraph
     },
     twitter: {
       card: "summary_large_image",
-      creator: "@Combo",
+      creator: "",
       title: override.title ?? undefined,
       description: override.description ?? undefined,
       images: "/banner.png",
@@ -28,4 +28,4 @@ export function createMetadata(override: Metadata): Metadata {
 export const baseUrl =
   process.env.NODE_ENV === "development"
     ? new URL("http://localhost:3000")
-    : new URL("https://designcombo.dev");
+    : new URL("https://simple-caption-generator.dev");

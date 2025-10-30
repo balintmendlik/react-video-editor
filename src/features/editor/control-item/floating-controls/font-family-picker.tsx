@@ -10,6 +10,8 @@ import { loadFonts } from "../../utils/fonts";
 import { dispatch } from "@designcombo/events";
 import { EDIT_OBJECT } from "@designcombo/state";
 import { ITrackItem } from "@designcombo/types";
+import useStore from "../../store/use-store";
+import { groupCaptionItems } from "./caption-preset-picker";
 
 export const onChangeFontFamily = async (
   font: ICompactFont,
@@ -39,7 +41,8 @@ export const onChangeFontFamily = async (
 export default function FontFamilyPicker() {
   const { compactFonts } = useDataState();
   const [search, setSearch] = useState("");
-  const { setFloatingControl, trackItem } = useLayoutStore();
+  const { setFloatingControl, trackItem, applyCaptionToAll } = useLayoutStore();
+  const { trackItemsMap } = useStore();
 
   const filteredFonts = compactFonts.filter((font) =>
     font.family.toLowerCase().includes(search.toLowerCase())
@@ -77,9 +80,33 @@ export default function FontFamilyPicker() {
             <div
               key={index}
               onClick={() => {
-                if (trackItem) {
+                if (!trackItem) return;
+                if (!applyCaptionToAll) {
                   onChangeFontFamily(font, trackItem);
+                  return;
                 }
+
+                // Apply to all caption segments from same source
+                const grouped = groupCaptionItems(trackItemsMap as any);
+                const current = grouped[trackItem.metadata.sourceUrl] || [];
+
+                const fontName = font.default.postScriptName;
+                const fontUrl = font.default.url;
+
+                loadFonts([
+                  {
+                    name: fontName,
+                    url: fontUrl
+                  }
+                ]).then(() => {
+                  const payload = current.reduce((acc: any, item: any) => {
+                    acc[item.id] = {
+                      details: { fontFamily: fontName, fontUrl }
+                    };
+                    return acc;
+                  }, {});
+                  dispatch(EDIT_OBJECT, { payload });
+                });
               }}
               className="cursor-pointer px-2 py-1 hover:bg-zinc-800/50"
             >

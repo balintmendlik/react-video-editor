@@ -17,7 +17,9 @@ import { X } from "lucide-react";
 import { ICompactFont, IFont } from "../interfaces/editor";
 import { DEFAULT_FONT } from "../constants/font";
 import { PresetCaption } from "./common/preset-caption";
-import AnimationCaption from "./common/animation-caption";
+import useStore from "../store/use-store";
+import { groupCaptionItems } from "./floating-controls/caption-preset-picker";
+import useLayoutStore from "../store/use-layout-store";
 
 interface ITextControlProps {
   color: string;
@@ -99,8 +101,17 @@ const BasicCaption = ({
   });
   const [applyToAll, setApplyToAll] = useState<boolean>(true);
   const { compactFonts, fonts } = useDataState();
+  const { trackItemsMap } = useStore();
+  const [captionItemIds, setCaptionItemIds] = useState<string[]>([]);
+  const [captionsData, setCaptionsData] = useState<any[]>([]);
+  const { setApplyCaptionToAll } = useLayoutStore();
 
   useEffect(() => {
+    // Ensure global flag matches the initial checkbox state
+    setApplyCaptionToAll(applyToAll);
+  }, []);
+
+	useEffect(() => {
     const fontFamily =
       trackItem.details.fontFamily || DEFAULT_FONT.postScriptName;
     const currentFont = fonts.find(
@@ -141,9 +152,30 @@ const BasicCaption = ({
         blur: 0
       }
     });
-  }, [trackItem]);
 
-  const handleChangeFontStyle = async (font: IFont) => {
+		// gather all caption segments for same media source
+		const groupedCaptions = groupCaptionItems(trackItemsMap as any);
+		const currentGroupItems = groupedCaptions[trackItem.metadata.sourceUrl];
+		const ids = currentGroupItems?.map((item: any) => item.id) || [];
+		setCaptionItemIds(ids);
+		setCaptionsData(currentGroupItems || []);
+	}, [trackItem, trackItemsMap]);
+
+	const buildPayload = (details: Record<string, any>) => {
+		if (applyToAll && captionItemIds.length > 0) {
+			return captionItemIds.reduce((acc: any, id: string) => {
+				acc[id] = { details }
+				return acc
+			}, {})
+		}
+		return {
+			[trackItem.id]: {
+				details
+			}
+		}
+	}
+
+	const handleChangeFontStyle = async (font: IFont) => {
     const fontName = font.postScriptName;
     const fontUrl = font.url;
     const styleName = getStyleNameFromFontName(fontName);
@@ -154,28 +186,15 @@ const BasicCaption = ({
       }
     ]);
     setSelectedFont({ ...selectedFont, name: styleName });
-    dispatch(EDIT_OBJECT, {
-      payload: {
-        [trackItem.id]: {
-          details: {
-            fontFamily: fontName,
-            fontUrl: fontUrl
-          }
-        }
-      }
-    });
+		dispatch(EDIT_OBJECT, {
+			payload: buildPayload({ fontFamily: fontName, fontUrl })
+		});
   };
 
-  const onChangeBorderWidth = (v: number) => {
-    dispatch(EDIT_OBJECT, {
-      payload: {
-        [trackItem.id]: {
-          details: {
-            borderWidth: v
-          }
-        }
-      }
-    });
+	const onChangeBorderWidth = (v: number) => {
+		dispatch(EDIT_OBJECT, {
+			payload: buildPayload({ borderWidth: v })
+		});
     setProperties((prev) => {
       return {
         ...prev,
@@ -184,16 +203,10 @@ const BasicCaption = ({
     });
   };
 
-  const onChangeBorderColor = (v: string) => {
-    dispatch(EDIT_OBJECT, {
-      payload: {
-        [trackItem.id]: {
-          details: {
-            borderColor: v
-          }
-        }
-      }
-    });
+	const onChangeBorderColor = (v: string) => {
+		dispatch(EDIT_OBJECT, {
+			payload: buildPayload({ borderColor: v })
+		});
     setProperties((prev) => {
       return {
         ...prev,
@@ -202,16 +215,10 @@ const BasicCaption = ({
     });
   };
 
-  const handleChangeOpacity = (v: number) => {
-    dispatch(EDIT_OBJECT, {
-      payload: {
-        [trackItem.id]: {
-          details: {
-            opacity: v
-          }
-        }
-      }
-    });
+	const handleChangeOpacity = (v: number) => {
+		dispatch(EDIT_OBJECT, {
+			payload: buildPayload({ opacity: v })
+		});
     setProperties((prev) => {
       return {
         ...prev,
@@ -220,16 +227,10 @@ const BasicCaption = ({
     }); // Update local state
   };
 
-  const onChangeBoxShadow = (boxShadow: IBoxShadow) => {
-    dispatch(EDIT_OBJECT, {
-      payload: {
-        [trackItem.id]: {
-          details: {
-            boxShadow: boxShadow
-          }
-        }
-      }
-    });
+	const onChangeBoxShadow = (boxShadow: IBoxShadow) => {
+		dispatch(EDIT_OBJECT, {
+			payload: buildPayload({ boxShadow })
+		});
 
     setProperties((prev) => {
       return {
@@ -239,16 +240,10 @@ const BasicCaption = ({
     });
   };
 
-  const onChangeFontSize = (v: number) => {
-    dispatch(EDIT_OBJECT, {
-      payload: {
-        [trackItem.id]: {
-          details: {
-            fontSize: v
-          }
-        }
-      }
-    });
+	const onChangeFontSize = (v: number) => {
+		dispatch(EDIT_OBJECT, {
+			payload: buildPayload({ fontSize: v })
+		});
     setProperties((prev) => {
       return {
         ...prev,
@@ -257,7 +252,7 @@ const BasicCaption = ({
     });
   };
 
-  const onChangeFontFamily = async (font: ICompactFont) => {
+	const onChangeFontFamily = async (font: ICompactFont) => {
     const fontName = font.default.postScriptName;
     const fontUrl = font.default.url;
 
@@ -274,19 +269,12 @@ const BasicCaption = ({
       fontFamilyDisplay: font.default.family
     });
 
-    dispatch(EDIT_OBJECT, {
-      payload: {
-        [trackItem.id]: {
-          details: {
-            fontFamily: fontName,
-            fontUrl: fontUrl
-          }
-        }
-      }
-    });
+		dispatch(EDIT_OBJECT, {
+			payload: buildPayload({ fontFamily: fontName, fontUrl })
+		});
   };
 
-  const handleColorChange = (color: string) => {
+	const handleColorChange = (color: string) => {
     setProperties((prev) => {
       return {
         ...prev,
@@ -294,50 +282,32 @@ const BasicCaption = ({
       } as ITextControlProps;
     });
 
-    dispatch(EDIT_OBJECT, {
-      payload: {
-        [trackItem.id]: {
-          details: {
-            color: color
-          }
-        }
-      }
-    });
+		dispatch(EDIT_OBJECT, {
+			payload: buildPayload({ color })
+		});
   };
 
-  const onChangeTextAlign = (v: string) => {
+	const onChangeTextAlign = (v: string) => {
     setProperties((prev) => {
       return {
         ...prev,
         textAlign: v
       } as ITextControlProps;
     });
-    dispatch(EDIT_OBJECT, {
-      payload: {
-        [trackItem.id]: {
-          details: {
-            textAlign: v
-          }
-        }
-      }
-    });
+		dispatch(EDIT_OBJECT, {
+			payload: buildPayload({ textAlign: v })
+		});
   };
 
-  const onChangeTextDecoration = (v: string) => {
+	const onChangeTextDecoration = (v: string) => {
     setProperties({
       ...properties,
       textDecoration: v
     });
 
-    dispatch(EDIT_OBJECT, {
-      payload: {
-        [trackItem.id]: {
-          details: {
-            textDecoration: v
-          }
-        }
-      }
-    });
+		dispatch(EDIT_OBJECT, {
+			payload: buildPayload({ textDecoration: v })
+		});
   };
 
   const applyAnimation = (presetName: PresetName, type: "in" | "out") => {
@@ -409,7 +379,11 @@ const BasicCaption = ({
           <Checkbox
             id="apply-to-all"
             checked={applyToAll}
-            onCheckedChange={(checked) => setApplyToAll(checked as boolean)}
+            onCheckedChange={(checked) => {
+              const val = checked as boolean
+              setApplyToAll(val)
+              setApplyCaptionToAll(val)
+            }}
           />
           <label
             htmlFor="apply-to-all"
@@ -434,21 +408,19 @@ const BasicCaption = ({
         />
       )
     },
-    {
-      key: "animations",
-      component: <AnimationCaption />
-    },
-    {
+		{
       key: "captionColors",
       component: (
-        <CaptionColors
-          id={trackItem.id}
-          activeColor={properties.activeColor}
-          activeFillColor={properties.activeFillColor}
-          appearedColor={properties.appearedColor}
-          isKeywordColor={properties.isKeywordColor}
-          preservedColorKeyWord={properties.preservedColorKeyWord}
-        />
+				<CaptionColors
+					id={trackItem.id}
+					activeColor={properties.activeColor}
+					activeFillColor={properties.activeFillColor}
+					appearedColor={properties.appearedColor}
+					isKeywordColor={properties.isKeywordColor}
+					preservedColorKeyWord={properties.preservedColorKeyWord}
+					applyToAll={applyToAll}
+					captionItemIds={captionItemIds}
+				/>
       )
     },
     {

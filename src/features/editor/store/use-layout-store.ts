@@ -13,6 +13,7 @@ const useLayoutStore = create<ILayoutState>((set) => ({
   controItemDrawerOpen: false,
   typeControlItem: "",
   labelControlItem: "",
+  applyCaptionToAll: false,
   setCropTarget: (cropTarget) => set({ cropTarget }),
   setActiveMenuItem: (showMenu) => set({ activeMenuItem: showMenu }),
   setShowMenuItem: (showMenuItem) => set({ showMenuItem }),
@@ -26,7 +27,8 @@ const useLayoutStore = create<ILayoutState>((set) => ({
   setControItemDrawerOpen: (controItemDrawerOpen) =>
     set({ controItemDrawerOpen }),
   setTypeControlItem: (typeControlItem) => set({ typeControlItem }),
-  setLabelControlItem: (labelControlItem) => set({ labelControlItem })
+  setLabelControlItem: (labelControlItem) => set({ labelControlItem }),
+  setApplyCaptionToAll: (apply) => set({ applyCaptionToAll: apply })
 }));
 
 export default useLayoutStore;

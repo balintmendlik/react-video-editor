@@ -23,6 +23,8 @@ interface ICaptionColors {
 
 interface ICaptionColorsProps extends ICaptionColors {
   id: string;
+  applyToAll?: boolean;
+  captionItemIds?: string[];
 }
 
 const CaptionColors = ({
@@ -31,7 +33,9 @@ const CaptionColors = ({
   activeColor,
   activeFillColor,
   isKeywordColor,
-  preservedColorKeyWord
+  preservedColorKeyWord,
+  applyToAll = false,
+  captionItemIds = []
 }: ICaptionColorsProps) => {
   const [localAppearedColor, setLocalAppearedColor] =
     useState<string>(appearedColor);
@@ -49,67 +53,51 @@ const CaptionColors = ({
   const { setControItemDrawerOpen, setTypeControlItem, setLabelControlItem } =
     useLayoutStore();
 
+  const buildPayload = (details: Record<string, any>) => {
+    if (applyToAll && captionItemIds.length > 0) {
+      return captionItemIds.reduce((acc: any, cid: string) => {
+        acc[cid] = { details }
+        return acc
+      }, {})
+    }
+    return {
+      [id]: {
+        details
+      }
+    }
+  }
+
   const onChangeAppearedColor = (v: string) => {
     setLocalAppearedColor(v);
     dispatch(EDIT_OBJECT, {
-      payload: {
-        [id]: {
-          details: {
-            appearedColor: v
-          }
-        }
-      }
+      payload: buildPayload({ appearedColor: v })
     });
   };
 
   const onChangeActiveColor = (v: string) => {
     setLocalActiveColor(v);
     dispatch(EDIT_OBJECT, {
-      payload: {
-        [id]: {
-          details: {
-            activeColor: v
-          }
-        }
-      }
+      payload: buildPayload({ activeColor: v })
     });
   };
 
   const onChangeActiveFillColor = (v: string) => {
     setLocalActiveFillColor(v);
     dispatch(EDIT_OBJECT, {
-      payload: {
-        [id]: {
-          details: {
-            activeFillColor: v
-          }
-        }
-      }
+      payload: buildPayload({ activeFillColor: v })
     });
   };
   const onChangeEmphasizeColor = (v: string) => {
     setLocalEmphasizeColor(v);
     dispatch(EDIT_OBJECT, {
-      payload: {
-        [id]: {
-          details: {
-            isKeywordColor: v
-          }
-        }
-      }
+      payload: buildPayload({ isKeywordColor: v })
     });
   };
 
   const onChangePreservedColor = (v: boolean) => {
     setLocalPreservedColor(v);
     dispatch(EDIT_OBJECT, {
-      payload: {
-        [id]: {
-          details: {
-            preservedColorKeyWord: v
-          }
-        }
-      }
+      payload: buildPayload({ preservedColorKeyWord: v })
     });
   };
 
