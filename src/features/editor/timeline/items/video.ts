@@ -151,21 +151,26 @@ class Video extends Trimmable {
   }
 
   public async prepareAssets() {
-    const file = await getFileFromUrl(this.src);
-    const stream = file.stream();
+    try {
+      const file = await getFileFromUrl(this.src);
+      const stream = file.stream();
 
-    // Dynamically import MP4Clip only on the client side
-    if (typeof window !== "undefined") {
-      try {
-        const { MP4Clip } = await import("@designcombo/frames");
-        this.clip = new MP4Clip(stream);
-      } catch (error) {
-        console.warn("Failed to load MP4Clip:", error);
+      // Dynamically import MP4Clip only on the client side
+      if (typeof window !== "undefined") {
+        try {
+          const { MP4Clip } = await import("@designcombo/frames");
+          this.clip = new MP4Clip(stream);
+        } catch (error) {
+          console.warn("Failed to load MP4Clip:", error);
+          this.clip = null;
+        }
+      } else {
+        // Server-side rendering - skip MP4Clip initialization
         this.clip = null;
       }
-    } else {
-      // Server-side rendering - skip MP4Clip initialization
-      this.clip = null;
+    } catch (e) {
+      console.warn("prepareAssets: failed to fetch clip source", e)
+      this.clip = null
     }
   }
 

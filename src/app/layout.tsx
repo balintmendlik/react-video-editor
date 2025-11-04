@@ -8,6 +8,7 @@ import {
 import { QueryProvider } from "@/components/query-provider";
 import { Analytics } from "@vercel/analytics/react";
 import { Outfit } from "next/font/google";
+import InterceptConsoleError from "@/components/globals/intercept-console-error";
 
 import "./globals.css";
 
@@ -48,6 +49,7 @@ export default async function RootLayout({
         className={`${geistMono.variable} ${geist.variable} ${outfit.variable} antialiased dark font-sans bg-muted`}
       >
         <QueryProvider>
+          <InterceptConsoleError />
           {children}
           <StoreInitializer />
           <BackgroundUploadRunner />

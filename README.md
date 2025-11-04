@@ -38,9 +38,7 @@ Check out the deployed version here: [React Video Editor Live Demo](https://vide
 
 Create a `.env` file in the project root and add the following:
 
-```env
-PEXELS_API_KEY=""
-```
+
 
 Clone locally:
 
@@ -53,6 +51,5 @@ pnpm dev
 
 Open your browser and visit http://localhost:3000 , see more at [Development](https://github.com/designcombo/react-video-editor).
 
-## 📝 License
-
-Copyright © 2025 [DesignCombo](https://designcombo.dev/).
+When deploying the app on Vercel, for cloud uploads, set .env.local:
+NEXT_PUBLIC_UPLOAD_STRATEGY=presign

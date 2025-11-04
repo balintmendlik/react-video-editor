@@ -15,10 +15,15 @@ const Player = () => {
     <RemotionPlayer
       ref={playerRef}
       component={Composition}
+      acknowledgeRemotionLicense
       durationInFrames={Math.round((duration / 1000) * fps) || 1}
       compositionWidth={size.width}
       compositionHeight={size.height}
-      className={`h-full w-full bg-[${background.value}]`}
+      className={"h-full w-full"}
+      style={{ background: background.value }}
+      onAutoPlayError={() => {
+        // Autoplay may fail due to browser policies. We default-mute and let Remotion retry silently.
+      }}
       fps={30}
       overflowVisible
     />

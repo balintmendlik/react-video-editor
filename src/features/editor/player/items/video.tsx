@@ -31,6 +31,19 @@ export const Video = ({
   const { durationInFrames } = calculateFrames(item.display, fps);
   const currentFrame = (frame || 0) - (item.display.from * fps) / 1000;
 
+  const effectiveSrc = (() => {
+    const src = details.src as string
+    if (typeof window === "undefined" || !src) return src
+    try {
+      const url = new URL(src, window.location.origin)
+      const isExternal = url.origin !== window.location.origin
+      if (isExternal) {
+        return `/api/uploads/url?u=${encodeURIComponent(src)}`
+      }
+    } catch {}
+    return src
+  })()
+
   const children = (
     <BoxAnim
       style={calculateContainerStyles(details, crop, {
@@ -52,13 +65,30 @@ export const Video = ({
           frame={frame || 0}
         >
           <div style={calculateMediaStyles(details, crop)}>
-            <OffthreadVideo
-              startFrom={(item.trim?.from! / 1000) * fps}
-              endAt={(item.trim?.to! / 1000) * fps || 1 / fps}
-              playbackRate={playbackRate}
-              src={details.src}
-              volume={details.volume || 0 / 100}
-            />
+            {(() => {
+              const props: any = {
+                playbackRate: playbackRate,
+                src: details.src,
+                volume:
+                  typeof details.volume === "number"
+                    ? details.volume / 100
+                    : 1,
+                muted: false,
+                onError: (err: unknown) => {
+                  console.warn("OffthreadVideo playback warning", {
+                    src: details.src,
+                    error: err,
+                  });
+                },
+              };
+              if (item.trim && typeof item.trim.from === "number") {
+                props.startFrom = (item.trim.from / 1000) * fps;
+              }
+              if (item.trim && typeof item.trim.to === "number") {
+                props.endAt = (item.trim.to / 1000) * fps;
+              }
+              return <OffthreadVideo {...props} src={effectiveSrc} />;
+            })()}
           </div>
         </MaskAnim>
       </ContentAnim>

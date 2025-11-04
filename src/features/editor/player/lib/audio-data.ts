@@ -16,6 +16,18 @@ export class AudioDataManager {
   private readonly MAX_CACHE_SIZE = 10;
   private frameCache: Map<number, number[]> = new Map();
   private readonly CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+  private suppressedSources: Set<string> = new Set();
+
+  private toEffectiveSrc(src: string): string {
+    if (typeof window === "undefined" || !src) return src;
+    try {
+      const url = new URL(src, window.location.origin);
+      if (url.origin !== window.location.origin) {
+        return `/api/uploads/url?u=${encodeURIComponent(src)}`;
+      }
+    } catch {}
+    return src;
+  }
 
   public setAudioDataManager(fps: number) {
     this.fps = fps;
@@ -23,24 +35,49 @@ export class AudioDataManager {
 
   private async loadAudioData(src: string, id: string): Promise<void> {
     try {
-      console.log("Loading audio data for", src);
-      const data = await getAudioData(src);
+      const effective = this.toEffectiveSrc(src);
+      if (this.suppressedSources.has(effective)) return;
+      console.log("Loading audio data for", effective);
+      const data = await getAudioData(effective);
       this.audioDatas[id] = {
         data,
         lastAccessed: Date.now()
       };
       this.cleanupCache();
     } catch (error) {
-      console.error(`Error loading audio data for ${src}:`, error);
+      // Be permissive: audio analysis is optional. If decoding fails or is blocked,
+      // skip gracefully so video rendering continues.
+      const name = (error as any)?.name || "Error";
+      const message = (error as any)?.message || String(error);
+      const log = (msg: string) => {
+        // Warn once per source to reduce console noise
+        if (!this.suppressedSources.has(src)) {
+          console.warn(msg);
+          this.suppressedSources.add(src);
+        }
+      };
 
-      // If it's an EncodingError (no audio track), just ignore it
-      if (error instanceof Error && error.name === "EncodingError") {
-        console.log(`No audio track found for ${src}, ignoring`);
+      const knownSkippable = [
+        "EncodingError",
+        "NotSupportedError",
+        "AbortError",
+        "TypeError", // often fetch/CORS issues surface as TypeError in browsers
+        "DOMException"
+      ];
+      if (
+        knownSkippable.includes(name) ||
+        /Unable to decode audio data/i.test(message) ||
+        /decoding/i.test(message) ||
+        /403/i.test(message) ||
+        /Failed to fetch/i.test(message)
+      ) {
+        log(`Skipping audio analysis for ${src} due to: ${name} ${message}`);
         return;
       }
 
-      // For other errors, still throw them
-      throw error;
+      // Default: skip (don't throw) to avoid breaking the player on audio decode issues
+      log(`Skipping audio analysis for ${src} due to unknown error: ${name} ${message}`);
+      return;
     }
   }
 
@@ -114,7 +151,7 @@ export class AudioDataManager {
     this.items = this.items.map((item) => {
       if (item.id === newItem.id) {
         if (item.details.src !== newItem.details.src) {
-          this.loadAudioData(newItem.details.src, item.id).catch(console.error);
+          this.loadAudioData(newItem.details.src, item.id).catch(() => {});
         }
         return newItem;
       }

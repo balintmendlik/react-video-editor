@@ -22,48 +22,89 @@ export async function processFileUpload(
   callbacks: UploadCallbacks
 ): Promise<any> {
   try {
-    // Get presigned URL
-    const {
-      data: { uploads }
-    } = await axios.post(
-      "/api/uploads/presign",
-      {
-        userId: "PJ1nkaufw0hZPyhN7bWCP",
-        fileNames: [file.name]
-      },
-      {
-        headers: { "Content-Type": "application/json" }
+    const strategy = process.env.NEXT_PUBLIC_UPLOAD_STRATEGY || "local"
+
+    if (strategy === "presign") {
+      // Presign flow: request presigned URL then PUT file directly to storage
+      const {
+        data: { uploads }
+      } = await axios.post(
+        "/api/uploads/presign",
+        {
+          userId: "PJ1nkaufw0hZPyhN7bWCP",
+          fileNames: [file.name]
+        },
+        { headers: { "Content-Type": "application/json" } }
+      )
+
+      const uploadInfo = uploads?.[0]
+      if (!uploadInfo) {
+        throw new Error("Presign failed: no upload info")
       }
-    );
 
-    const uploadInfo = uploads[0];
+      await axios.put(uploadInfo.presignedUrl, file, {
+        headers: { "Content-Type": uploadInfo.contentType },
+        onUploadProgress: (progressEvent) => {
+          const percent = Math.round(
+            (progressEvent.loaded * 100) / (progressEvent.total || 1)
+          )
+          callbacks.onProgress(uploadId, percent)
+        },
+        validateStatus: () => true
+      })
 
-    // Upload file with progress tracking
-    await axios.put(uploadInfo.presignedUrl, file, {
-      headers: { "Content-Type": uploadInfo.contentType },
+      const uploadData = {
+        fileName: uploadInfo.fileName,
+        filePath: uploadInfo.filePath,
+        fileSize: file.size,
+        contentType: uploadInfo.contentType,
+        metadata: { uploadedUrl: uploadInfo.url },
+        folder: uploadInfo.folder || null,
+        type: uploadInfo.contentType.split("/")[0],
+        method: "direct",
+        origin: "user",
+        status: "uploaded",
+        isPreview: false
+      }
+
+      callbacks.onStatus(uploadId, "uploaded")
+      return uploadData
+    }
+
+    // Local flow: multipart upload to our API
+    const form = new FormData()
+    form.append("file", file, file.name)
+
+    const { data } = await axios.post("/api/uploads", form, {
+      headers: { "Content-Type": "multipart/form-data" },
       onUploadProgress: (progressEvent) => {
         const percent = Math.round(
           (progressEvent.loaded * 100) / (progressEvent.total || 1)
-        );
-        callbacks.onProgress(uploadId, percent);
-      },
-      validateStatus: () => true
-    });
+        )
+        callbacks.onProgress(uploadId, percent)
+      }
+    })
 
-    // Construct upload data from uploadInfo
+    const uploadInfo = (data?.uploads || [])[0]
+    if (!uploadInfo) {
+      throw new Error("Upload failed: no upload info returned")
+    }
+
+    const contentType: string = uploadInfo.contentType || file.type || "application/octet-stream"
+
     const uploadData = {
       fileName: uploadInfo.fileName,
       filePath: uploadInfo.filePath,
       fileSize: file.size,
-      contentType: uploadInfo.contentType,
+      contentType: contentType,
       metadata: { uploadedUrl: uploadInfo.url },
       folder: uploadInfo.folder || null,
-      type: uploadInfo.contentType.split("/")[0],
+      type: contentType.split("/")[0],
       method: "direct",
       origin: "user",
       status: "uploaded",
       isPreview: false
-    };
+    }
 
     callbacks.onStatus(uploadId, "uploaded");
     return uploadData;
@@ -103,7 +144,12 @@ export async function processUrlUpload(
       filePath: uploadInfo.filePath,
       fileSize: 0,
       contentType: uploadInfo.contentType,
-      metadata: { originalUrl: uploadInfo.originalUrl },
+      // expose internal served URL so the editor uses a same-origin path
+      url: uploadInfo.url,
+      metadata: {
+        originalUrl: uploadInfo.originalUrl,
+        uploadedUrl: uploadInfo.url,
+      },
       folder: uploadInfo.folder || null,
       type: uploadInfo.contentType.split("/")[0],
       method: "url",

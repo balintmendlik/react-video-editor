@@ -19,6 +19,12 @@ export default function Audio({
       playbackRate={playbackRate}
       src={details.src}
       volume={details.volume! / 100}
+      onError={(err) => {
+        console.error('Audio playback error', {
+          src: details.src,
+          error: err
+        })
+      }}
     />
   );
   return BaseSequence({ item, options, children });

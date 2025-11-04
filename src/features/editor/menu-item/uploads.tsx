@@ -11,12 +11,53 @@ import {
 } from "lucide-react";
 import { generateId } from "@designcombo/timeline";
 import { Button } from "@/components/ui/button";
+import * as React from "react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import useUploadStore from "../store/use-upload-store";
 import ModalUpload from "@/components/modal-upload";
 
 export const Uploads = () => {
   const { setShowUploadModal, uploads, pendingUploads, activeUploads } =
     useUploadStore();
+
+  const getVideoDisplayName = (video: any) => {
+    let name = video?.fileName || video?.file?.name || video?.url || video?.filePath || "Video";
+    if (!video?.file?.name && video?.url) {
+      try {
+        const url = new URL(video.url);
+        const last = url.pathname.split("/").pop() || "";
+        name = decodeURIComponent(last) || name;
+      } catch {
+        const last = String(video.url).split("/").pop() || "";
+        try {
+          name = decodeURIComponent(last) || name;
+        } catch {
+          name = last || name;
+        }
+      }
+    }
+    return name.length > 10 ? name.slice(0, 10) + "…" : name;
+  };
+
+  const getVideoFullName = (video: any) => {
+    let name = video?.fileName || video?.file?.name || video?.url || video?.filePath || "Video";
+    if (!video?.file?.name && (video?.url || video?.filePath)) {
+      const candidate = video?.url || video?.filePath || "";
+      try {
+        const url = new URL(candidate);
+        const last = url.pathname.split("/").pop() || "";
+        name = decodeURIComponent(last) || name;
+      } catch {
+        const last = String(candidate).split("/").pop() || "";
+        try {
+          name = decodeURIComponent(last) || name;
+        } catch {
+          name = last || name;
+        }
+      }
+    }
+    return name;
+  };
 
   // Group completed uploads by type
   const videos = uploads.filter(
@@ -36,7 +77,8 @@ export const Uploads = () => {
       payload: {
         id: generateId(),
         details: {
-          src: srcVideo
+          src: srcVideo,
+          volume: 100
         },
         metadata: {
           previewUrl:
@@ -49,6 +91,65 @@ export const Uploads = () => {
       }
     });
   };
+
+  const FrozenVideoThumb = ({ src }: { src: string }) => {
+    const videoRef = React.useRef<HTMLVideoElement | null>(null)
+    const [loaded, setLoaded] = React.useState(false)
+
+    React.useEffect(() => {
+      const video = videoRef.current
+      if (!video) return
+      let cancelled = false
+
+      const onError = () => {
+        if (!cancelled) setLoaded(true)
+      }
+
+      const onLoadedMeta = () => {
+        const fps = 30
+        const targetSeconds = 120 / fps
+        const duration = Number.isFinite(video.duration) ? video.duration : 0
+        const safeTime = Math.max(0, Math.min(Math.max(duration - 0.05, 0), targetSeconds))
+        try {
+          video.currentTime = safeTime
+        } catch {
+          // ignore seek errors
+        }
+      }
+
+      const onSeeked = () => {
+        try {
+          video.pause()
+        } catch {}
+        if (!cancelled) setLoaded(true)
+      }
+
+      video.addEventListener('error', onError)
+      video.addEventListener('loadedmetadata', onLoadedMeta)
+      video.addEventListener('seeked', onSeeked)
+
+      // In case metadata is already available
+      if (video.readyState >= 1) onLoadedMeta()
+
+      return () => {
+        cancelled = true
+        video.removeEventListener('error', onError)
+        video.removeEventListener('loadedmetadata', onLoadedMeta)
+        video.removeEventListener('seeked', onSeeked)
+      }
+    }, [src])
+
+    return (
+      <video
+        ref={videoRef}
+        src={src}
+        muted
+        playsInline
+        preload="metadata"
+        className="h-full w-full object-cover"
+      />
+    )
+  }
 
   const handleAddImage = (image: any) => {
     const srcImage = image.metadata?.uploadedUrl || image.url;
@@ -150,20 +251,31 @@ export const Uploads = () => {
             <ScrollArea className="max-h-32">
               <div className="grid grid-cols-3 gap-2 max-w-full">
                 {videos.map((video, idx) => (
-                  <div
-                    className="flex items-center gap-2 flex-col w-full"
-                    key={video.id || idx}
-                  >
-                    <Card
-                      className="w-16 h-16 flex items-center justify-center overflow-hidden relative cursor-pointer"
-                      onClick={() => handleAddVideo(video)}
-                    >
-                      <VideoIcon className="w-8 h-8 text-muted-foreground" />
-                    </Card>
-                    <div className="text-xs text-muted-foreground truncate w-full text-center">
-                      {video.file?.name || video.url || "Video"}
-                    </div>
-                  </div>
+                  <Tooltip key={video.id || idx}>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-2 flex-col w-full">
+                        <Card
+                          className="w-16 h-16 flex items-center justify-center overflow-hidden relative cursor-pointer"
+                          onClick={() => handleAddVideo(video)}
+                        >
+                          {(() => {
+                            const srcVideo = video.metadata?.uploadedUrl || video.url || video.filePath
+                            return srcVideo ? (
+                              <FrozenVideoThumb src={srcVideo} />
+                            ) : (
+                              <VideoIcon className="w-8 h-8 text-muted-foreground" />
+                            )
+                          })()}
+                        </Card>
+                        <div className="text-xs text-muted-foreground w-full text-center">
+                          {getVideoDisplayName(video)}
+                        </div>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" sideOffset={6} className="bg-white text-black" arrowClassName="bg-white fill-white">
+                      {getVideoFullName(video)}
+                    </TooltipContent>
+                  </Tooltip>
                 ))}
               </div>
             </ScrollArea>

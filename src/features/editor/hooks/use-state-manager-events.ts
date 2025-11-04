@@ -20,9 +20,25 @@ export const useStateManagerEvents = (stateManager: StateManager) => {
         return item.type === "video" || item.type === "audio";
       }
     );
-    audioDataManager.setItems(
-      filterTrakcItems as (ITrackItem & (IVideo | IAudio))[]
-    );
+    const proxied = (filterTrakcItems as (ITrackItem & (IVideo | IAudio))[]).map((it) => {
+      const src = (it as any).details?.src as string | undefined
+      if (typeof window !== "undefined" && src) {
+        try {
+          const url = new URL(src, window.location.origin)
+          if (url.origin !== window.location.origin) {
+            return {
+              ...it,
+              details: {
+                ...it.details,
+                src: `/api/uploads/url?u=${encodeURIComponent(src)}`,
+              } as any,
+            }
+          }
+        } catch {}
+      }
+      return it
+    })
+    audioDataManager.setItems(proxied)
     audioDataManager.validateUpdateItems(
       filterTrakcItems as (ITrackItem & (IVideo | IAudio))[]
     );
@@ -41,9 +57,25 @@ export const useStateManagerEvents = (stateManager: StateManager) => {
         return item.type === "video" || item.type === "audio";
       }
     );
-    audioDataManager.validateUpdateItems(
-      filterTrakcItems as (ITrackItem & (IVideo | IAudio))[]
-    );
+    const proxied = (filterTrakcItems as (ITrackItem & (IVideo | IAudio))[]).map((it) => {
+      const src = (it as any).details?.src as string | undefined
+      if (typeof window !== "undefined" && src) {
+        try {
+          const url = new URL(src, window.location.origin)
+          if (url.origin !== window.location.origin) {
+            return {
+              ...it,
+              details: {
+                ...it.details,
+                src: `/api/uploads/url?u=${encodeURIComponent(src)}`,
+              } as any,
+            }
+          }
+        } catch {}
+      }
+      return it
+    })
+    audioDataManager.validateUpdateItems(proxied)
     setState({
       trackItemsMap: currentState.trackItemsMap,
       trackItemIds: currentState.trackItemIds,
