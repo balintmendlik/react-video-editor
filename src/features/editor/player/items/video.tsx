@@ -4,7 +4,7 @@ import { BoxAnim, ContentAnim, MaskAnim } from "@designcombo/animations";
 import { calculateContainerStyles, calculateMediaStyles } from "../styles";
 import { getAnimations } from "../../utils/get-animations";
 import { calculateFrames } from "../../utils/frames";
-import { OffthreadVideo } from "remotion";
+import { Video as RemotionVideo } from "remotion";
 
 export const Video = ({
   item,
@@ -75,7 +75,7 @@ export const Video = ({
                     : 1,
                 muted: false,
                 onError: (err: unknown) => {
-                  console.warn("OffthreadVideo playback warning", {
+                  console.warn("Video playback warning", {
                     src: details.src,
                     error: err,
                   });
@@ -87,7 +87,7 @@ export const Video = ({
               if (item.trim && typeof item.trim.to === "number") {
                 props.endAt = (item.trim.to / 1000) * fps;
               }
-              return <OffthreadVideo {...props} src={effectiveSrc} />;
+              return <RemotionVideo {...props} src={effectiveSrc} />;
             })()}
           </div>
         </MaskAnim>

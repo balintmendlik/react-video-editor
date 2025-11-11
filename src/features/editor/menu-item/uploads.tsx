@@ -7,7 +7,8 @@ import {
   Image as ImageIcon,
   Video as VideoIcon,
   Loader2,
-  UploadIcon
+  UploadIcon,
+  Trash2
 } from "lucide-react";
 import { generateId } from "@designcombo/timeline";
 import { Button } from "@/components/ui/button";
@@ -15,14 +16,24 @@ import * as React from "react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import useUploadStore from "../store/use-upload-store";
 import ModalUpload from "@/components/modal-upload";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 
 export const Uploads = () => {
-  const { setShowUploadModal, uploads, pendingUploads, activeUploads } =
+  const { setShowUploadModal, uploads, pendingUploads, activeUploads, deleteUploadedItem } =
     useUploadStore();
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  const [itemToDelete, setItemToDelete] = React.useState<string | null>(null);
 
   const getVideoDisplayName = (video: any) => {
-    let name = video?.fileName || video?.file?.name || video?.url || video?.filePath || "Video";
-    if (!video?.file?.name && video?.url) {
+    let name = video?.originalFileName || video?.fileName || video?.file?.name || video?.url || video?.filePath || "Video";
+    if (!video?.originalFileName && !video?.file?.name && video?.url) {
       try {
         const url = new URL(video.url);
         const last = url.pathname.split("/").pop() || "";
@@ -40,8 +51,8 @@ export const Uploads = () => {
   };
 
   const getVideoFullName = (video: any) => {
-    let name = video?.fileName || video?.file?.name || video?.url || video?.filePath || "Video";
-    if (!video?.file?.name && (video?.url || video?.filePath)) {
+    let name = video?.originalFileName || video?.fileName || video?.file?.name || video?.url || video?.filePath || "Video";
+    if (!video?.originalFileName && !video?.file?.name && (video?.url || video?.filePath)) {
       const candidate = video?.url || video?.filePath || "";
       try {
         const url = new URL(candidate);
@@ -186,6 +197,25 @@ export const Uploads = () => {
     });
   };
 
+  const handleDeleteUpload = (e: React.MouseEvent, uploadId: string) => {
+    e.stopPropagation();
+    setItemToDelete(uploadId);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (itemToDelete) {
+      deleteUploadedItem(itemToDelete);
+    }
+    setDeleteModalOpen(false);
+    setItemToDelete(null);
+  };
+
+  const cancelDelete = () => {
+    setDeleteModalOpen(false);
+    setItemToDelete(null);
+  };
+
   const UploadPrompt = () => (
     <div className="flex items-center justify-center px-4">
       <Button
@@ -206,36 +236,32 @@ export const Uploads = () => {
       <ModalUpload />
       <UploadPrompt />
 
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete File</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this file?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelDelete}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Yes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Uploads in Progress Section */}
       {(pendingUploads.length > 0 || activeUploads.length > 0) && (
         <div className="p-4">
-          <div className="font-medium text-sm mb-2 flex items-center gap-2">
+          <div className="font-medium text-sm flex items-center gap-2">
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
             Uploads in Progress
-          </div>
-          <div className="flex flex-col gap-2">
-            {pendingUploads.map((upload) => (
-              <div key={upload.id} className="flex items-center gap-2">
-                <span className="truncate text-xs flex-1">
-                  {upload.file?.name || upload.url || "Unknown"}
-                </span>
-                <span className="text-xs text-muted-foreground">Pending</span>
-              </div>
-            ))}
-            {activeUploads.map((upload) => (
-              <div key={upload.id} className="flex items-center gap-2">
-                <span className="truncate text-xs flex-1">
-                  {upload.file?.name || upload.url || "Unknown"}
-                </span>
-                <div className="flex items-center gap-1">
-                  <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
-                  <span className="text-xs">{upload.progress ?? 0}%</span>
-                  <span className="text-xs text-muted-foreground ml-2">
-                    {upload.status}
-                  </span>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       )}
@@ -255,7 +281,7 @@ export const Uploads = () => {
                     <TooltipTrigger asChild>
                       <div className="flex items-center gap-2 flex-col w-full">
                         <Card
-                          className="w-16 h-16 flex items-center justify-center overflow-hidden relative cursor-pointer"
+                          className="w-16 h-16 flex items-center justify-center overflow-hidden relative cursor-pointer group"
                           onClick={() => handleAddVideo(video)}
                         >
                           {(() => {
@@ -266,6 +292,13 @@ export const Uploads = () => {
                               <VideoIcon className="w-8 h-8 text-muted-foreground" />
                             )
                           })()}
+                          <button
+                            className="absolute top-1 right-1 p-1 bg-destructive/90 hover:bg-destructive text-destructive-foreground rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => handleDeleteUpload(e, video.id)}
+                            aria-label="Delete video"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
                         </Card>
                         <div className="text-xs text-muted-foreground w-full text-center">
                           {getVideoDisplayName(video)}
@@ -297,13 +330,20 @@ export const Uploads = () => {
                     key={image.id || idx}
                   >
                     <Card
-                      className="w-16 h-16 flex items-center justify-center overflow-hidden relative cursor-pointer"
+                      className="w-16 h-16 flex items-center justify-center overflow-hidden relative cursor-pointer group"
                       onClick={() => handleAddImage(image)}
                     >
                       <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                      <button
+                        className="absolute top-1 right-1 p-1 bg-destructive/90 hover:bg-destructive text-destructive-foreground rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => handleDeleteUpload(e, image.id)}
+                        aria-label="Delete image"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
                     </Card>
                     <div className="text-xs text-muted-foreground truncate w-full text-center">
-                      {image.file?.name || image.url || "Image"}
+                      {image.originalFileName || image.file?.name || image.url || "Image"}
                     </div>
                   </div>
                 ))}
@@ -327,13 +367,20 @@ export const Uploads = () => {
                     key={audio.id || idx}
                   >
                     <Card
-                      className="w-16 h-16 flex items-center justify-center overflow-hidden relative cursor-pointer"
+                      className="w-16 h-16 flex items-center justify-center overflow-hidden relative cursor-pointer group"
                       onClick={() => handleAddAudio(audio)}
                     >
                       <Music className="w-8 h-8 text-muted-foreground" />
+                      <button
+                        className="absolute top-1 right-1 p-1 bg-destructive/90 hover:bg-destructive text-destructive-foreground rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => handleDeleteUpload(e, audio.id)}
+                        aria-label="Delete audio"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
                     </Card>
                     <div className="text-xs text-muted-foreground truncate w-full text-center">
-                      {audio.file?.name || audio.url || "Audio"}
+                      {audio.originalFileName || audio.file?.name || audio.url || "Audio"}
                     </div>
                   </div>
                 ))}

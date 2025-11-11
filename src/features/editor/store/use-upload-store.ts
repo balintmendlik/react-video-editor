@@ -42,6 +42,7 @@ interface IUploadStore {
   removeUpload: (id: string) => void;
   uploads: any[];
   setUploads: (uploads: any[] | ((prev: any[]) => any[])) => void;
+  deleteUploadedItem: (id: string) => void;
 }
 
 const useUploadStore = create<IUploadStore>()(
@@ -143,10 +144,14 @@ const useUploadStore = create<IUploadStore>()(
               if (uploadData) {
                 if (Array.isArray(uploadData)) {
                   // URL uploads return an array
-                  setUploads((prev) => [...prev, ...uploadData]);
+                  const uploadsWithIds = uploadData.map((item) => ({
+                    ...item,
+                    id: crypto.randomUUID()
+                  }));
+                  setUploads((prev) => [...prev, ...uploadsWithIds]);
                 } else {
                   // File uploads return a single object
-                  setUploads((prev) => [...prev, uploadData]);
+                  setUploads((prev) => [...prev, { ...uploadData, id: crypto.randomUUID() }]);
                 }
               }
             })
@@ -182,11 +187,48 @@ const useUploadStore = create<IUploadStore>()(
             typeof uploads === "function"
               ? (uploads as (prev: any[]) => any[])(state.uploads)
               : uploads
-        }))
+        })),
+      deleteUploadedItem: async (id: string) => {
+        const state = get();
+        const uploadToDelete = state.uploads.find((u) => u.id === id);
+        
+        if (!uploadToDelete) return;
+
+        // Optimistically remove from UI
+        set((state) => ({
+          uploads: state.uploads.filter((u) => u.id !== id)
+        }));
+
+        // Delete from server if fileName exists
+        if (uploadToDelete.fileName) {
+          try {
+            await fetch('/api/uploads', {
+              method: 'DELETE',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ fileName: uploadToDelete.fileName })
+            });
+          } catch (error) {
+            console.error('Failed to delete file from server:', error);
+            // File deletion failed, but we already removed it from UI
+            // You could add logic here to restore it if needed
+          }
+        }
+      }
     }),
     {
       name: "upload-store",
-      partialize: (state) => ({ uploads: state.uploads })
+      partialize: (state) => ({ uploads: state.uploads }),
+      onRehydrateStorage: () => (state) => {
+        // Ensure all existing uploads have IDs
+        if (state?.uploads) {
+          state.uploads = state.uploads.map((upload) => ({
+            ...upload,
+            id: upload.id || crypto.randomUUID()
+          }));
+        }
+      }
     }
   )
 );

@@ -68,7 +68,7 @@ export const Captions = () => {
         throw new Error("Track item not found");
       }
 
-      const { url } = await transcribeMedia(selectedMedia, "ES");
+      const { url } = await transcribeMedia(selectedMedia, "en");
       const jsonData = await fetchJsonFromUrl(url);
       const fontInfo = {
         fontFamily: "theboldfont",

@@ -26,13 +26,14 @@ export async function processFileUpload(
 
     if (strategy === "presign") {
       // Presign flow: request presigned URL then PUT file directly to storage
+      const originalFileName = file.name
       const {
         data: { uploads }
       } = await axios.post(
         "/api/uploads/presign",
         {
           userId: "PJ1nkaufw0hZPyhN7bWCP",
-          fileNames: [file.name]
+          fileNames: [originalFileName]
         },
         { headers: { "Content-Type": "application/json" } }
       )
@@ -54,17 +55,18 @@ export async function processFileUpload(
       })
 
       const uploadData = {
-        fileName: uploadInfo.fileName,
-        filePath: uploadInfo.filePath,
-        fileSize: file.size,
-        contentType: uploadInfo.contentType,
-        metadata: { uploadedUrl: uploadInfo.url },
-        folder: uploadInfo.folder || null,
-        type: uploadInfo.contentType.split("/")[0],
-        method: "direct",
-        origin: "user",
-        status: "uploaded",
-        isPreview: false
+      fileName: uploadInfo.fileName,
+      originalFileName: originalFileName,
+      filePath: uploadInfo.filePath,
+      fileSize: file.size,
+      contentType: uploadInfo.contentType,
+      metadata: { uploadedUrl: uploadInfo.url },
+      folder: uploadInfo.folder || null,
+      type: uploadInfo.contentType.split("/")[0],
+      method: "direct",
+      origin: "user",
+      status: "uploaded",
+      isPreview: false
       }
 
       callbacks.onStatus(uploadId, "uploaded")
@@ -94,6 +96,7 @@ export async function processFileUpload(
 
     const uploadData = {
       fileName: uploadInfo.fileName,
+      originalFileName: uploadInfo.originalFileName || file.name,
       filePath: uploadInfo.filePath,
       fileSize: file.size,
       contentType: contentType,
@@ -141,6 +144,7 @@ export async function processUrlUpload(
     // Construct upload data from uploads array
     const uploadDataArray = uploads.map((uploadInfo: any) => ({
       fileName: uploadInfo.fileName,
+      originalFileName: uploadInfo.originalFileName || uploadInfo.fileName,
       filePath: uploadInfo.filePath,
       fileSize: 0,
       contentType: uploadInfo.contentType,

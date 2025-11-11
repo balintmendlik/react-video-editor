@@ -41,16 +41,17 @@ export async function POST (request: NextRequest) {
 			const filePath = path.join(uploadsDir, unique)
 			await fs.writeFile(filePath, buffer)
 
-			const uploadedUrl = `/api/uploads/file/${encodeURIComponent(unique)}`
-			const result = {
-				fileName: unique,
-				filePath: filePath,
-				contentType: (file as any).type || "application/octet-stream",
-				url: uploadedUrl,
-				folder: "_uploads"
-			}
+		const uploadedUrl = `/api/uploads/file/${encodeURIComponent(unique)}`
+		const result = {
+			fileName: unique,
+			originalFileName: origName,
+			filePath: filePath,
+			contentType: (file as any).type || "application/octet-stream",
+			url: uploadedUrl,
+			folder: "_uploads"
+		}
 
-			return NextResponse.json({ success: true, uploads: [result] })
+		return NextResponse.json({ success: true, uploads: [result] })
 		}
 
 		// Fallback JSON handler for metadata-only calls
@@ -68,4 +69,37 @@ export async function POST (request: NextRequest) {
 	}
 }
 
+export async function DELETE (request: NextRequest) {
+	try {
+		const body = await request.json()
+		const { fileName } = body
+
+		if (!fileName) {
+			return NextResponse.json({ error: "fileName is required" }, { status: 400 })
+		}
+
+		// Sanitize the filename to prevent directory traversal
+		const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_")
+		const uploadsDir = path.join(process.cwd(), "_uploads")
+		const filePath = path.join(uploadsDir, safeName)
+
+		// Check if file exists and delete it
+		try {
+			await fs.access(filePath)
+			await fs.unlink(filePath)
+			return NextResponse.json({ success: true, message: "File deleted successfully" })
+		} catch (err) {
+			// File doesn't exist or can't be deleted
+			return NextResponse.json(
+				{ error: "File not found or already deleted" },
+				{ status: 404 }
+			)
+		}
+	} catch (err) {
+		return NextResponse.json(
+			{ error: err instanceof Error ? err.message : String(err) },
+			{ status: 500 }
+		)
+	}
+}
 
