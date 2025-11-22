@@ -56,7 +56,7 @@ const Editor = ({ tempId, id }: { tempId?: string; id?: string }) => {
 	} = useLayoutStore();
 	const isLargeScreen = useIsLargeScreen();
 
-	useTimelineEvents();
+	useTimelineEvents(stateManager);
 	useKeyboardShortcuts();
 
 	const { setCompactFonts, setFonts } = useDataState();

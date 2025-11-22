@@ -146,6 +146,13 @@ export const useStateManagerEvents = (stateManager: StateManager) => {
     const updateItemDetailsSubscription =
       stateManager.subscribeToUpdateItemDetails(handleUpdateItemDetails);
 
+    // Subscribe to active IDs changes
+    const activeIdsSubscription = stateManager.subscribeToActiveIds(
+      (newState) => {
+        setState(newState);
+      }
+    );
+
     // Cleanup function to unsubscribe from all events
     return () => {
       if (isSubscribedRef.current) {
@@ -156,6 +163,7 @@ export const useStateManagerEvents = (stateManager: StateManager) => {
         updateTrackItemsMap.unsubscribe();
         updateItemDetailsSubscription.unsubscribe();
         resizeDesignSubscription.unsubscribe();
+        activeIdsSubscription.unsubscribe();
 
         // Remove from registry
         registry.delete(hookId);

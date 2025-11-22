@@ -206,10 +206,41 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
     });
     setTimeline(canvas);
 
+    // Listen to Fabric.js selection events and sync with stateManager
+    const handleSelectionCreated = (e: any) => {
+      const selectedIds = e.selected?.map((obj: any) => obj.id).filter(Boolean) || [];
+      stateManager.updateState(
+        { activeIds: selectedIds },
+        { updateHistory: false, kind: "layer:selection" }
+      );
+    };
+
+    const handleSelectionUpdated = (e: any) => {
+      const selectedIds = e.selected?.map((obj: any) => obj.id).filter(Boolean) || [];
+      stateManager.updateState(
+        { activeIds: selectedIds },
+        { updateHistory: false, kind: "layer:selection" }
+      );
+    };
+
+    const handleSelectionCleared = () => {
+      stateManager.updateState(
+        { activeIds: [] },
+        { updateHistory: false, kind: "layer:selection" }
+      );
+    };
+
+    canvas.on("selection:created", handleSelectionCreated);
+    canvas.on("selection:updated", handleSelectionUpdated);
+    canvas.on("selection:cleared", handleSelectionCleared);
+
     return () => {
+      canvas.off("selection:created", handleSelectionCreated);
+      canvas.off("selection:updated", handleSelectionUpdated);
+      canvas.off("selection:cleared", handleSelectionCleared);
       canvas.purge();
     };
-  }, []);
+  }, [stateManager]);
 
   const handleOnScrollH = (e: React.UIEvent<HTMLDivElement, UIEvent>) => {
     const scrollLeft = e.currentTarget.scrollLeft;

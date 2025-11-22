@@ -9,11 +9,12 @@ import {
   PLAYER_SEEK_BY,
   PLAYER_TOGGLE_PLAY
 } from "../constants/events";
-import { LAYER_PREFIX, LAYER_SELECTION } from "@designcombo/state";
+import { LAYER_PREFIX, LAYER_SELECTION, LAYER_DELETE } from "@designcombo/state";
 import { TIMELINE_SEEK, TIMELINE_PREFIX } from "@designcombo/timeline";
 import { getSafeCurrentFrame } from "../utils/time";
+import StateManager from "@designcombo/state";
 
-const useTimelineEvents = () => {
+const useTimelineEvents = (stateManager?: StateManager) => {
   const { playerRef, fps, timeline, setState } = useStore();
 
   //handle player events
@@ -64,21 +65,56 @@ const useTimelineEvents = () => {
     };
   }, [playerRef, fps]);
 
-  // handle selection events
+  // handle selection and delete events
   useEffect(() => {
-    const selectionEvents = subject.pipe(
+    const layerEvents = subject.pipe(
       filter(({ key }) => key.startsWith(LAYER_PREFIX))
     );
 
-    const selectionSubscription = selectionEvents.subscribe((obj) => {
+    const layerSubscription = layerEvents.subscribe((obj) => {
       if (obj.key === LAYER_SELECTION) {
         setState({
           activeIds: obj.value?.payload.activeIds
         });
+      } else if (obj.key === LAYER_DELETE && stateManager) {
+        // Get current state
+        const currentState = stateManager.getState();
+        const activeIds = currentState.activeIds;
+
+        if (activeIds.length === 0) return;
+
+        // Create new state without the deleted items
+        const newTrackItemIds = currentState.trackItemIds.filter(
+          (id) => !activeIds.includes(id)
+        );
+
+        const newTrackItemsMap = { ...currentState.trackItemsMap };
+        activeIds.forEach((id) => {
+          delete newTrackItemsMap[id];
+        });
+
+        const newTracks = currentState.tracks.map((track) => ({
+          ...track,
+          items: track.items.filter((id) => !activeIds.includes(id))
+        }));
+
+        // Update the state
+        stateManager.updateState(
+          {
+            trackItemIds: newTrackItemIds,
+            trackItemsMap: newTrackItemsMap,
+            tracks: newTracks,
+            activeIds: []
+          },
+          {
+            updateHistory: true,
+            kind: "layer:delete"
+          }
+        );
       }
     });
-    return () => selectionSubscription.unsubscribe();
-  }, [timeline]);
+    return () => layerSubscription.unsubscribe();
+  }, [timeline, stateManager, setState]);
 };
 
 export default useTimelineEvents;
