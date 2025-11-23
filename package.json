@@ -10,9 +10,11 @@
 		"migrate:up": "tsx scripts/migrate.ts up",
 		"migrate:down": "tsx scripts/migrate.ts down",
 		"cleanup-db": "tsx scripts/cleanup-db.ts",
-		"format": "biome format . --write"
+		"format": "biome format . --write",
+		"deploy:lambda": "tsx src/lib/remotion-deploy-script.ts"
 	},
 	"dependencies": {
+		"@aws-sdk/client-s3": "^3.937.0",
 		"@designcombo/animations": "^5.4.2",
 		"@designcombo/events": "^1.0.2",
 		"@designcombo/frames": "^0.0.3",
@@ -45,6 +47,7 @@
 		"@radix-ui/react-toggle-group": "^1.1.10",
 		"@radix-ui/react-tooltip": "^1.2.6",
 		"@remotion/cli": "4.0.377",
+		"@remotion/fonts": "4.0.377",
 		"@remotion/lambda": "4.0.377",
 		"@remotion/media-utils": "4.0.377",
 		"@remotion/paths": "4.0.377",
@@ -88,6 +91,7 @@
 		"remark-gfm": "4",
 		"remeda": "2",
 		"remotion": "4.0.377",
+		"server-only": "^0.0.1",
 		"shiki": "1",
 		"socket.io-client": "^4.8.1",
 		"sonner": "^2.0.3",

@@ -12,8 +12,8 @@ const DownloadProgressModal = () => {
 
   const handleDownload = async () => {
     if (output?.url) {
-      await download(output.url, "untitled.mp4");
-      console.log("downloading");
+      console.log("Starting download from:", output.url);
+      download(output.url, "video-export.mp4");
     }
   };
   return (
@@ -49,10 +49,21 @@ const DownloadProgressModal = () => {
             <div className="text-5xl font-semibold">
               {Math.floor(progress)}%
             </div>
-            <div className="font-bold">Exporting...</div>
+            <div className="font-bold">
+              {progress < 5 ? 'Preparing export...' : 'Exporting...'}
+            </div>
             <div className="text-center text-zinc-500">
-              <div>Closing the browser will not cancel the export.</div>
-              <div>The video will be saved in your space.</div>
+              {progress < 5 ? (
+                <>
+                  <div>Setting up rendering infrastructure...</div>
+                  <div className="text-sm mt-1">(This may take a minute on first export)</div>
+                </>
+              ) : (
+                <>
+                  <div>Closing the browser will not cancel the export.</div>
+                  <div>The video will be saved in your space.</div>
+                </>
+              )}
             </div>
             <Button variant={"outline"}>Cancel</Button>
           </div>

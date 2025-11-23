@@ -175,28 +175,7 @@ const Header = () => {
               <span className="hidden lg:block">Delete</span>
             </Button>
 
-            <Button
-              disabled={!activeIds.length}
-              onClick={doActiveSplit}
-              variant={"ghost"}
-              size={isLargeScreen ? "sm" : "icon"}
-              className="flex items-center gap-1 px-2"
-            >
-              <SquareSplitHorizontal size={15} />{" "}
-              <span className="hidden lg:block">Split</span>
-            </Button>
-            <Button
-              disabled={!activeIds.length}
-              onClick={() => {
-                dispatch(LAYER_CLONE);
-              }}
-              variant={"ghost"}
-              size={isLargeScreen ? "sm" : "icon"}
-              className="flex items-center gap-1 px-2"
-            >
-              <SquareSplitHorizontal size={15} />{" "}
-              <span className="hidden lg:block">Clone</span>
-            </Button>
+            
           </div>
           <div className="flex items-center justify-center">
             <div>
